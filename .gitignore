@@ -1,0 +1,23 @@
+# Python & Environment
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.env
+venv/
+env/
+ENV/
+.venv
+
+# IDEs & System
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# Dynamic / Uploaded media (keep sample demo only)
+uploads/*
+!uploads/.gitkeep
+test_output.jpg

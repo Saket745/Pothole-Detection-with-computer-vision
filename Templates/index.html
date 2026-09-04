@@ -1,0 +1,749 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YOLOv12 Pothole Vision Engine | Live Localhost Demo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg-primary: #07090e;
+            --bg-secondary: #0e131f;
+            --card-bg: rgba(16, 24, 39, 0.7);
+            --border-color: rgba(255, 255, 255, 0.08);
+            --accent-cyan: #00e5ff;
+            --accent-blue: #3b82f6;
+            --accent-danger: #ff3366;
+            --accent-warning: #f59e0b;
+            --accent-success: #10b981;
+            --text-main: #f8fafc;
+            --text-muted: #94a3b8;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+            background-color: var(--bg-primary);
+            background-image: 
+                radial-gradient(circle at 15% 15%, rgba(0, 229, 255, 0.05) 0%, transparent 40%),
+                radial-gradient(circle at 85% 85%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        /* Top Header */
+        header {
+            background: rgba(11, 15, 25, 0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border-color);
+            padding: 1rem 2rem;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+
+        .header-content {
+            max-width: 1440px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .brand-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .brand-logo {
+            width: 38px;
+            height: 38px;
+            background: linear-gradient(135deg, var(--accent-cyan), var(--accent-blue));
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 800;
+            color: #000;
+            font-size: 1.1rem;
+            box-shadow: 0 0 20px rgba(0, 229, 255, 0.35);
+        }
+
+        .brand-text h1 {
+            font-size: 1.25rem;
+            font-weight: 700;
+            letter-spacing: -0.02em;
+            background: linear-gradient(90deg, #ffffff, #cbd5e1);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .brand-text p {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .badges-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .badge {
+            padding: 5px 12px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            border: 1px solid var(--border-color);
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .badge-pulse {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background-color: var(--accent-success);
+            box-shadow: 0 0 10px var(--accent-success);
+            animation: pulse 1.8s infinite;
+        }
+
+        @keyframes pulse {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 8px rgba(16, 185, 129, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+        }
+
+        /* Main Workspace */
+        main {
+            flex: 1;
+            max-width: 1440px;
+            width: 100%;
+            margin: 0 auto;
+            padding: 1.75rem 2rem;
+            display: grid;
+            grid-template-columns: 1.9fr 1.1fr;
+            gap: 1.75rem;
+        }
+
+        @media (max-width: 1024px) {
+            main {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        /* Video Stage */
+        .video-stage {
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+
+        .video-frame-wrapper {
+            position: relative;
+            background: #000;
+            border-radius: 16px;
+            overflow: hidden;
+            border: 1px solid rgba(0, 229, 255, 0.25);
+            box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.7), 0 0 30px -10px rgba(0, 229, 255, 0.15);
+            aspect-ratio: 16 / 9;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .video-feed {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            display: block;
+        }
+
+        /* Floating Overlays on Video */
+        .overlay-hud {
+            position: absolute;
+            top: 14px;
+            left: 14px;
+            right: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            pointer-events: none;
+        }
+
+        .hud-status {
+            background: rgba(15, 23, 42, 0.75);
+            backdrop-filter: blur(8px);
+            padding: 6px 14px;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .hud-source {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.75rem;
+            background: rgba(0, 0, 0, 0.6);
+            padding: 4px 10px;
+            border-radius: 6px;
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 229, 255, 0.2);
+        }
+
+        /* Video Controls Toolbar */
+        .stage-toolbar {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            padding: 1rem 1.25rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+
+        .selector-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .selector-group label {
+            font-size: 0.82rem;
+            color: var(--text-muted);
+            white-space: nowrap;
+        }
+
+        select {
+            background: rgba(15, 23, 42, 0.9);
+            color: var(--text-main);
+            border: 1px solid var(--border-color);
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-family: inherit;
+            font-size: 0.85rem;
+            outline: none;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.2s ease;
+        }
+
+        select:focus {
+            border-color: var(--accent-cyan);
+            box-shadow: 0 0 0 2px rgba(0, 229, 255, 0.2);
+        }
+
+        .btn-action {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border: 1px solid var(--border-color);
+            color: var(--text-main);
+            padding: 8px 16px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .btn-action:hover {
+            border-color: var(--accent-cyan);
+            color: var(--accent-cyan);
+            transform: translateY(-1px);
+        }
+
+        /* Sidebar & Stats */
+        .sidebar {
+            display: flex;
+            flex-direction: column;
+            gap: 1.25rem;
+        }
+
+        .panel-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--border-color);
+            border-radius: 16px;
+            padding: 1.25rem;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size: 0.9rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            margin-bottom: 1rem;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
+        /* Stats Grid */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 0.85rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .stat-box {
+            background: rgba(15, 23, 42, 0.6);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1rem;
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .stat-box.highlight {
+            border-color: rgba(255, 51, 102, 0.3);
+            background: rgba(255, 51, 102, 0.05);
+        }
+
+        .stat-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            font-weight: 500;
+        }
+
+        .stat-value {
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 1.6rem;
+            font-weight: 700;
+            color: var(--text-main);
+        }
+
+        .stat-value.potholes {
+            color: var(--accent-danger);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .stat-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        /* Sliders */
+        .control-group {
+            margin-top: 0.75rem;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+        }
+
+        .slider-val {
+            font-family: 'JetBrains Mono', monospace;
+            color: var(--accent-cyan);
+            font-weight: 600;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            height: 6px;
+            border-radius: 3px;
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: var(--accent-cyan);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent-cyan);
+            transition: transform 0.1s ease;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.2);
+        }
+
+        /* Upload Zone */
+        .dropzone {
+            border: 2px dashed rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 1.5rem 1rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.25s ease;
+            background: rgba(15, 23, 42, 0.4);
+        }
+
+        .dropzone:hover, .dropzone.dragover {
+            border-color: var(--accent-cyan);
+            background: rgba(0, 229, 255, 0.04);
+        }
+
+        .dropzone-icon {
+            font-size: 1.8rem;
+            margin-bottom: 8px;
+        }
+
+        .dropzone-text {
+            font-size: 0.85rem;
+            color: var(--text-main);
+            font-weight: 500;
+            margin-bottom: 4px;
+        }
+
+        .dropzone-sub {
+            font-size: 0.72rem;
+            color: var(--text-muted);
+        }
+
+        #file-input {
+            display: none;
+        }
+
+        .upload-status {
+            margin-top: 10px;
+            font-size: 0.78rem;
+            font-weight: 500;
+            display: none;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .upload-status.success {
+            display: block;
+            background: rgba(16, 185, 129, 0.1);
+            color: var(--accent-success);
+            border: 1px solid rgba(16, 185, 129, 0.25);
+        }
+
+        .upload-status.loading {
+            display: block;
+            background: rgba(0, 229, 255, 0.1);
+            color: var(--accent-cyan);
+            border: 1px solid rgba(0, 229, 255, 0.25);
+        }
+
+        /* Footer */
+        footer {
+            border-top: 1px solid var(--border-color);
+            background: rgba(11, 15, 25, 0.5);
+            padding: 1.25rem 2rem;
+            text-align: center;
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            margin-top: auto;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header -->
+    <header>
+        <div class="header-content">
+            <div class="brand-group">
+                <div class="brand-logo">V12</div>
+                <div class="brand-text">
+                    <h1>YOLOv12 Pothole Vision Engine</h1>
+                    <p>Real-Time Road Distress Analysis & Intelligent Detection</p>
+                </div>
+            </div>
+            <div class="badges-group">
+                <div class="badge">
+                    <div class="badge-pulse"></div>
+                    <span>LIVE STREAM</span>
+                </div>
+                <div class="badge">Architecture: YOLOv12s</div>
+                <div class="badge">Supervision 0.29</div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main>
+        <!-- Video Stream Stage -->
+        <section class="video-stage">
+            <div class="video-frame-wrapper">
+                <img id="stream-player" src="{{ url_for('video_feed') }}" class="video-feed" alt="Pothole Detection Stream">
+                <div class="overlay-hud">
+                    <div class="hud-status" id="hud-status-badge">
+                        <span>●</span> <span id="hud-status-text">Scanning Roadways</span>
+                    </div>
+                    <div class="hud-source" id="hud-source-name">SOURCE: demo.mp4</div>
+                </div>
+            </div>
+
+            <!-- Video Controls Toolbar -->
+            <div class="stage-toolbar">
+                <div class="selector-group">
+                    <label for="video-select">Active Video Source:</label>
+                    <select id="video-select" onchange="switchVideo(this.value)">
+                        <option value="demo.mp4">demo.mp4 (Default Road Footage)</option>
+                    </select>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button class="btn-action" onclick="refreshFeed()" title="Reload Stream">
+                        🔄 Refresh Stream
+                    </button>
+                    <button class="btn-action" onclick="document.getElementById('file-input').click()">
+                        📁 Select File
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sidebar / Analytics & Controls -->
+        <aside class="sidebar">
+            <!-- Real-time Telemetry -->
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>Inference Telemetry</span>
+                    <span style="font-size: 0.72rem; color: var(--accent-cyan); font-family: 'JetBrains Mono'">REAL-TIME</span>
+                </div>
+
+                <div class="stats-grid">
+                    <div class="stat-box highlight">
+                        <span class="stat-label">POTHOLES DETECTED</span>
+                        <div class="stat-value potholes" id="stat-detections">0</div>
+                        <span class="stat-sub" id="stat-severity">Clear pavement</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">FRAME RATE (FPS)</span>
+                        <div class="stat-value" id="stat-fps">--</div>
+                        <span class="stat-sub">Hardware throughput</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">INFERENCE LATENCY</span>
+                        <div class="stat-value" id="stat-latency">--</div>
+                        <span class="stat-sub">Area-Attention forward</span>
+                    </div>
+                    <div class="stat-box">
+                        <span class="stat-label">CONFIDENCE THRESHOLD</span>
+                        <div class="stat-value" id="stat-conf">35%</div>
+                        <span class="stat-sub">Active filter</span>
+                    </div>
+                </div>
+
+                <!-- Confidence Slider -->
+                <div class="control-group">
+                    <div class="slider-header">
+                        <span style="color: var(--text-muted); font-size: 0.8rem;">Detection Confidence Sensitivity:</span>
+                        <span class="slider-val" id="conf-val-label">0.35</span>
+                    </div>
+                    <input type="range" id="conf-slider" min="0.10" max="0.90" step="0.05" value="0.35" oninput="onConfidenceChange(this.value)">
+                </div>
+            </div>
+
+            <!-- Upload Custom Video -->
+            <div class="panel-card">
+                <div class="panel-title">
+                    <span>Direct Video Upload</span>
+                </div>
+                <div class="dropzone" id="dropzone" onclick="document.getElementById('file-input').click()">
+                    <div class="dropzone-icon">📤</div>
+                    <div class="dropzone-text">Drop your road video here or click to browse</div>
+                    <div class="dropzone-sub">Supports MP4, AVI, MOV, MKV (Auto-loops & runs detection)</div>
+                </div>
+                <input type="file" id="file-input" accept=".mp4,.avi,.mov,.mkv,.webm" onchange="handleFileUpload(this.files[0])">
+                <div id="upload-status" class="upload-status"></div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer -->
+    <footer>
+        YOLOv12 Area-Attention Real-Time Pothole Detection | Running natively on Localhost:5000
+    </footer>
+
+    <script>
+        let confidenceTimeout = null;
+
+        // Fetch videos list on initial load
+        async function fetchVideoList() {
+            try {
+                const res = await fetch('/api/videos');
+                const data = await res.json();
+                const select = document.getElementById('video-select');
+                select.innerHTML = '';
+
+                data.videos.forEach(v => {
+                    const opt = document.createElement('option');
+                    opt.value = v;
+                    opt.innerText = v === 'demo.mp4' ? 'demo.mp4 (Default Road Footage)' : v;
+                    if (v === data.active) opt.selected = true;
+                    select.appendChild(opt);
+                });
+            } catch (err) {
+                console.error('Failed to fetch videos:', err);
+            }
+        }
+
+        // Switch video source
+        async function switchVideo(videoName) {
+            try {
+                const res = await fetch('/api/select_video', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ video_name: videoName })
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    document.getElementById('hud-source-name').innerText = 'SOURCE: ' + videoName;
+                    refreshFeed();
+                }
+            } catch (err) {
+                console.error('Failed to switch video:', err);
+            }
+        }
+
+        // Refresh image stream
+        function refreshFeed() {
+            const player = document.getElementById('stream-player');
+            player.src = "/video_feed?t=" + new Date().getTime();
+        }
+
+        // Live stats polling
+        async function pollTelemetry() {
+            try {
+                const res = await fetch('/api/stats');
+                const data = await res.json();
+
+                // Detection count
+                const detEl = document.getElementById('stat-detections');
+                const sevEl = document.getElementById('stat-severity');
+                detEl.innerText = data.detections;
+
+                if (data.detections > 3) {
+                    sevEl.innerText = '⚠️ Severe road damage';
+                    sevEl.style.color = 'var(--accent-danger)';
+                    detEl.style.color = 'var(--accent-danger)';
+                } else if (data.detections > 0) {
+                    sevEl.innerText = 'Caution: Pothole detected';
+                    sevEl.style.color = 'var(--accent-warning)';
+                    detEl.style.color = 'var(--accent-warning)';
+                } else {
+                    sevEl.innerText = 'Road surface clear';
+                    sevEl.style.color = 'var(--accent-success)';
+                    detEl.style.color = 'var(--text-main)';
+                }
+
+                // FPS & Latency
+                document.getElementById('stat-fps').innerText = data.fps + ' FPS';
+                document.getElementById('stat-latency').innerText = data.latency_ms + ' ms';
+                document.getElementById('stat-conf').innerText = Math.round(data.confidence * 100) + '%';
+                document.getElementById('hud-source-name').innerText = 'SOURCE: ' + data.source;
+
+            } catch (err) {
+                console.error('Telemetry fetch error:', err);
+            }
+        }
+
+        // Confidence change handler
+        function onConfidenceChange(val) {
+            document.getElementById('conf-val-label').innerText = parseFloat(val).toFixed(2);
+            clearTimeout(confidenceTimeout);
+            confidenceTimeout = setTimeout(async () => {
+                await fetch('/api/set_confidence', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confidence: parseFloat(val) })
+                });
+            }, 100);
+        }
+
+        // Drag and drop file upload
+        const dropzone = document.getElementById('dropzone');
+        ['dragenter', 'dragover'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            }, false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            dropzone.addEventListener(eventName, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            }, false);
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const file = dt.files[0];
+            if (file) handleFileUpload(file);
+        });
+
+        async function handleFileUpload(file) {
+            if (!file) return;
+            const statusEl = document.getElementById('upload-status');
+            statusEl.className = 'upload-status loading';
+            statusEl.innerText = 'Uploading and buffering ' + file.name + '...';
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            try {
+                const res = await fetch('/api/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                const data = await res.json();
+                if (data.status === 'success') {
+                    statusEl.className = 'upload-status success';
+                    statusEl.innerText = '✅ ' + data.message;
+                    await fetchVideoList();
+                    refreshFeed();
+                } else {
+                    statusEl.className = 'upload-status';
+                    statusEl.style.display = 'block';
+                    statusEl.style.color = 'var(--accent-danger)';
+                    statusEl.innerText = '❌ ' + data.message;
+                }
+            } catch (err) {
+                statusEl.className = 'upload-status';
+                statusEl.style.display = 'block';
+                statusEl.style.color = 'var(--accent-danger)';
+                statusEl.innerText = '❌ Upload failed: ' + err;
+            }
+        }
+
+        // Start intervals
+        fetchVideoList();
+        setInterval(pollTelemetry, 800);
+    </script>
+</body>
+</html>
