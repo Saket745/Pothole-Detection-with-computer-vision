@@ -7,12 +7,6 @@ from werkzeug.utils import secure_filename
 import cv2
 import torch
 import supervision as sv
-
-# ==============================================================================
-# YOLOv12 Backward-Compatibility Patch for Area Attention (AAttn)
-# ==============================================================================
-# In Ultralytics 8.3+, AAttn was refactored from single 'qkv' to 'qk' and 'v'.
-# This monkey-patch handles checkpoints trained on either v1.0 or newer versions.
 import ultralytics.nn.modules.block as ultralytics_block
 
 def patched_aattn_forward(self, x):
@@ -60,9 +54,6 @@ ultralytics_block.AAttn.forward = patched_aattn_forward
 
 from ultralytics import YOLO
 
-# ==============================================================================
-# Configuration & State Management
-# ==============================================================================
 BASE_DIR = Path(__file__).resolve().parent
 UPLOAD_DIR = BASE_DIR / "uploads"
 UPLOAD_DIR.mkdir(exist_ok=True)
@@ -195,9 +186,9 @@ detector = VideoDetectorStream(
     default_source=str(BASE_DIR / "demo.mp4")
 )
 
-# ==============================================================================
+
 # Flask Routes & APIs
-# ==============================================================================
+
 @app.route('/')
 def index():
     return render_template('index.html')
